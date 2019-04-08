@@ -41,6 +41,8 @@ import org.springframework.util.ErrorHandler;
  * @author Stephane Nicoll
  * @author Andy Wilkinson
  * @author Artsiom Yudovin
+ *
+ * 		运行时 监听器 在SpringApplication.run() 时会被加载
  */
 public class EventPublishingRunListener implements SpringApplicationRunListener, Ordered {
 
@@ -48,12 +50,17 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 
 	private final String[] args;
 
+	/**
+	 * 事件广播对象
+	 */
 	private final SimpleApplicationEventMulticaster initialMulticaster;
 
 	public EventPublishingRunListener(SpringApplication application, String[] args) {
 		this.application = application;
 		this.args = args;
+		//创建该对象时 会初始化一个广播对象
 		this.initialMulticaster = new SimpleApplicationEventMulticaster();
+		//这里是将监听器设置到广播中  那就是 该发布事件的监听器 只是一个触发器实质上还是通知到 ApplicationListener
 		for (ApplicationListener<?> listener : application.getListeners()) {
 			this.initialMulticaster.addApplicationListener(listener);
 		}
@@ -64,8 +71,12 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 		return 0;
 	}
 
+	/**
+	 * 当SpringApplication启动的时候 会触发该方法
+	 */
 	@Override
 	public void starting() {
+		//看来这个监听器只是一个 广播对象 将事件发布出去
 		this.initialMulticaster.multicastEvent(
 				new ApplicationStartingEvent(this.application, this.args));
 	}

@@ -30,6 +30,8 @@ import org.springframework.util.ReflectionUtils;
  * A collection of {@link SpringApplicationRunListener}.
  *
  * @author Phillip Webb
+ *
+ * 用于包装监听器列表和 日志对象
  */
 class SpringApplicationRunListeners {
 

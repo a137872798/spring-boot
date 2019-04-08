@@ -155,6 +155,8 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  * @see #run(Class, String[])
  * @see #run(Class[], String[])
  * @see #SpringApplication(Class...)
+ *
+ * 	spring应用对象 也是springboot 项目的入口
  */
 public class SpringApplication {
 
@@ -244,6 +246,8 @@ public class SpringApplication {
 	 * @see #run(Class, String[])
 	 * @see #SpringApplication(ResourceLoader, Class...)
 	 * @see #setSources(Set)
+	 *
+	 * 		构建一个新的 SpringApplication 对象  这里封装了  启动类(也就是包含@SpringBootApplication的类)
 	 */
 	public SpringApplication(Class<?>... primarySources) {
 		this(null, primarySources);
@@ -258,23 +262,37 @@ public class SpringApplication {
 	 * @param primarySources the primary bean sources
 	 * @see #run(Class, String[])
 	 * @see #setSources(Set)
+	 *
+	 *  初始化 SpringApplication 对象   默认情况下 classLoader 类为null
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
 		this.resourceLoader = resourceLoader;
+		//这里规定了 入口类不能为空
 		Assert.notNull(primarySources, "PrimarySources must not be null");
+		//对应 一组启动类 对象
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		//从类路径 推断 当前webApplication的类型  一般情况下 这里会确认 Web类型为 Servlet
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
+		//这里 通过传入 指定的类 来获取一组工厂对象   ApplicationContextInitializer 默认有4个实现类  并设置到initializer属性上
 		setInitializers((Collection) getSpringFactoriesInstances(
 				ApplicationContextInitializer.class));
+		//设置监听器
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+		//设置主类
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
+	/**
+	 * 推断主要的 ApplicationClass
+	 * @return
+	 */
 	private Class<?> deduceMainApplicationClass() {
 		try {
+			//获取 栈轨迹  该方法实现 是由native 做的 就是会记录 程序当前的调用栈
 			StackTraceElement[] stackTrace = new RuntimeException().getStackTrace();
 			for (StackTraceElement stackTraceElement : stackTrace) {
+				//从栈轨迹中找到 main方法所在的那行  获取主类
 				if ("main".equals(stackTraceElement.getMethodName())) {
 					return Class.forName(stackTraceElement.getClassName());
 				}
@@ -290,15 +308,25 @@ public class SpringApplication {
 	 * Run the Spring application, creating and refreshing a new
 	 * {@link ApplicationContext}.
 	 * @param args the application arguments (usually passed from a Java main method)
-	 * @return a running {@link ApplicationContext}
+	 * @return a running {@link ApplicationContext}、
+	 *
+	 * 		当SpringApplication 对象初始化完毕后 通过run 方法 启动程序
 	 */
 	public ConfigurableApplicationContext run(String... args) {
+
+		//这是 spring 内部的停表对象
 		StopWatch stopWatch = new StopWatch();
+		//这个 设置了一个 开始时间 也就是 System.currentTimeMillis()
 		stopWatch.start();
 		ConfigurableApplicationContext context = null;
+		//生成一个 异常报告容器
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+		//设置 headless 属性 暂时还不懂 默认是true
 		configureHeadlessProperty();
+		//默认情况 args 是null  设置了 EventPublishingRunListener 对象()
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		//这里已经触发了 实例化SpringApplication 的 所有listener了
+		//首先会通知到LoggingApplicationListener  会初始化一个 Logging对象  并进行初始化的前置处理
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(
@@ -410,28 +438,64 @@ public class SpringApplication {
 				SYSTEM_PROPERTY_JAVA_AWT_HEADLESS, Boolean.toString(this.headless)));
 	}
 
+	/**
+	 * 设置一个监听器对象
+	 * @param args
+	 * @return
+	 */
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
+		//参数this 对应到 types的SpringApplication  也就是把自身赋值给 SpringApplicationRunListeners
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
+		//SpringApplicationRunListeners  应该是内部维护了 一组 SpringApplicationRunListener
 		return new SpringApplicationRunListeners(logger, getSpringFactoriesInstances(
 				SpringApplicationRunListener.class, types, this, args));
 	}
 
+	/**
+	 * 通过传入的类型 获取到对应的 工厂集合  传入数组 传入 空数组
+	 * @param type
+	 * @param <T>
+	 * @return
+	 */
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type) {
 		return getSpringFactoriesInstances(type, new Class<?>[] {});
 	}
 
+	/**
+	 * 通过传入的类型 尝试获取 springFactory  传入的是接口类型 应该是根据SPI机制
+	 * 从配置文件中加载对应的类
+	 * @param type
+	 * @param parameterTypes  对应的 args 的类型 如果 args 为null 一般该对象是一个空数组
+	 * @param args  默认情况下是null
+	 * @param <T>
+	 * @return
+	 */
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type,
 			Class<?>[] parameterTypes, Object... args) {
+		//先尝试从当前线程中获取类加载器 如果没有的情况下 调用native 方法获取 类加载器 会返回ExtClassLoader
+		//ClassLoader.getSystemClassLoader 返回的是AppClassLoader 也就是应用级别的 classLoader
 		ClassLoader classLoader = getClassLoader();
 		// Use names and ensure unique to protect against duplicates
+		//这里将候选的 对象加入 因为一个key 对应的 value 可能是多个(使用,拼接)
 		Set<String> names = new LinkedHashSet<>(
 				SpringFactoriesLoader.loadFactoryNames(type, classLoader));
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes,
 				classLoader, args, names);
+		//排序后返回
 		AnnotationAwareOrderComparator.sort(instances);
 		return instances;
 	}
 
+	/**
+	 * 传入接口类型
+	 * @param type
+	 * @param parameterTypes  参数类型 对应到args  可能2者都是空
+	 * @param classLoader 指定的类加载器
+	 * @param args
+	 * @param names  备选的 接口实现类
+	 * @param <T>
+	 * @return
+	 */
 	@SuppressWarnings("unchecked")
 	private <T> List<T> createSpringFactoriesInstances(Class<T> type,
 			Class<?>[] parameterTypes, ClassLoader classLoader, Object[] args,
@@ -439,10 +503,13 @@ public class SpringApplication {
 		List<T> instances = new ArrayList<>(names.size());
 		for (String name : names) {
 			try {
+				//使用对应的类加载器 实例化对象
 				Class<?> instanceClass = ClassUtils.forName(name, classLoader);
 				Assert.isAssignable(type, instanceClass);
+				//根据 入参类型获取对应的 构造方法
 				Constructor<?> constructor = instanceClass
 						.getDeclaredConstructor(parameterTypes);
+				//反射创建对象   内部就是 constructor.newInstance()
 				T instance = (T) BeanUtils.instantiateClass(constructor, args);
 				instances.add(instance);
 			}
@@ -1242,6 +1309,8 @@ public class SpringApplication {
 	 * @param primarySource the primary source to load
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return the running {@link ApplicationContext}
+	 *
+	 * 入口  传入的 class 就是 携带 @SpringBootApplication 注解的带有main方法的类
 	 */
 	public static ConfigurableApplicationContext run(Class<?> primarySource,
 			String... args) {
@@ -1254,6 +1323,9 @@ public class SpringApplication {
 	 * @param primarySources the primary sources to load
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return the running {@link ApplicationContext}
+	 *
+	 * 由  run(Class<?> primarySources, String[] args) 引导来  代表传入了一系列源
+	 * 同时 在构建 springApplication 后 还调用了run方法 传入了一组 参数
 	 */
 	public static ConfigurableApplicationContext run(Class<?>[] primarySources,
 			String[] args) {
