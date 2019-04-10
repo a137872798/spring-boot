@@ -38,6 +38,7 @@ public class PropertySourcesPlaceholdersResolver implements PlaceholdersResolver
 	private final PropertyPlaceholderHelper helper;
 
 	public PropertySourcesPlaceholdersResolver(Environment environment) {
+		//这里获取了环境所有的属性
 		this(getSources(environment), null);
 	}
 
@@ -49,6 +50,7 @@ public class PropertySourcesPlaceholdersResolver implements PlaceholdersResolver
 			PropertyPlaceholderHelper helper) {
 		this.sources = sources;
 		this.helper = (helper != null) ? helper
+				//创建一个 help 对象   这3个属性应该是识别占位符用的  ${    }    :
 				: new PropertyPlaceholderHelper(SystemPropertyUtils.PLACEHOLDER_PREFIX,
 						SystemPropertyUtils.PLACEHOLDER_SUFFIX,
 						SystemPropertyUtils.VALUE_SEPARATOR, true);

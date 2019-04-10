@@ -327,10 +327,13 @@ public class SpringApplication {
 		SpringApplicationRunListeners listeners = getRunListeners(args);
 		//这里已经触发了 实例化SpringApplication 的 所有listener了
 		//首先会通知到LoggingApplicationListener  会初始化一个 Logging对象  并进行初始化的前置处理
+		// 实际上 所有监听器中 只触发了 LoggingApplicationListener类的onApplicationEvent方法   只是将日志类 进行了初始化
 		listeners.starting();
 		try {
+			//根据传入的参数 构造参数对象
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(
 					args);
+			//使用监听器 和 参数 创建一个 Environment 对象
 			ConfigurableEnvironment environment = prepareEnvironment(listeners,
 					applicationArguments);
 			configureIgnoreBeanInfo(environment);
@@ -366,12 +369,22 @@ public class SpringApplication {
 		return context;
 	}
 
+	/**
+	 * 初始化环境
+	 * @param listeners
+	 * @param applicationArguments
+	 * @return
+	 */
 	private ConfigurableEnvironment prepareEnvironment(
 			SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments) {
 		// Create and configure the environment
+		// 会创建对应的 servletWEB环境   这里会返回一个StandardServletEnvironment 对象 (构造函数中没有做其他操作)
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
+		//使用指定参数 对 环境进行配置 这里的 参数 一般就是 jvm中设定的参数  然而 args为空的情况 不会发生设值操作
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
+		//通知监听器 环境初始化完毕  同样对应的 	EventPublishingRunListener 内的广播对象
+		//这次ConfigFileApplicationListener 会触发
 		listeners.environmentPrepared(environment);
 		bindToSpringApplication(environment);
 		if (!this.isCustomEnvironment) {
@@ -549,11 +562,14 @@ public class SpringApplication {
 	protected void configureEnvironment(ConfigurableEnvironment environment,
 			String[] args) {
 		if (this.addConversionService) {
+			//返回一个 ApplicationConversionService  该对象在初始化时为 spring工厂设置了一堆的 conversion对象
 			ConversionService conversionService = ApplicationConversionService
 					.getSharedInstance();
+			//为环境设置 转化对象
 			environment.setConversionService(
 					(ConfigurableConversionService) conversionService);
 		}
+		//利用args配置环境属性  一般 情况下args 为 空数组 也就不会设置
 		configurePropertySources(environment, args);
 		configureProfiles(environment, args);
 	}
@@ -564,14 +580,18 @@ public class SpringApplication {
 	 * @param environment this application's environment
 	 * @param args arguments passed to the {@code run} method
 	 * @see #configureEnvironment(ConfigurableEnvironment, String[])
+	 * 为环境设置属性
 	 */
 	protected void configurePropertySources(ConfigurableEnvironment environment,
 			String[] args) {
+		//MutablePropertySources  内部维护了一个 List<PropertySource> 该对象内部由 name source 构成  类似于map
 		MutablePropertySources sources = environment.getPropertySources();
+		//默认情况下 defaultProperties 为null
 		if (this.defaultProperties != null && !this.defaultProperties.isEmpty()) {
 			sources.addLast(
 					new MapPropertySource("defaultProperties", this.defaultProperties));
 		}
+		//代表允许设置命令行参数 且 args 大于0  一般也是不设置
 		if (this.addCommandLineProperties && args.length > 0) {
 			String name = CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME;
 			if (sources.contains(name)) {
@@ -596,11 +616,14 @@ public class SpringApplication {
 	 * @param args arguments passed to the {@code run} method
 	 * @see #configureEnvironment(ConfigurableEnvironment, String[])
 	 * @see org.springframework.boot.context.config.ConfigFileApplicationListener
+	 * 配置 profile
 	 */
 	protected void configureProfiles(ConfigurableEnvironment environment, String[] args) {
+		//为配置情况下  activeProfiles 为空
 		environment.getActiveProfiles(); // ensure they are initialized
 		// But these ones should go first (last wins in a property key clash)
 		Set<String> profiles = new LinkedHashSet<>(this.additionalProfiles);
+		//设置活跃的 profiles  一般也是空
 		profiles.addAll(Arrays.asList(environment.getActiveProfiles()));
 		environment.setActiveProfiles(StringUtils.toStringArray(profiles));
 	}

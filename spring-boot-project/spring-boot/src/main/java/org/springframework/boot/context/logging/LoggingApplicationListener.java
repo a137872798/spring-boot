@@ -215,6 +215,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 	}
 
 	private void onApplicationStartingEvent(ApplicationStartingEvent event) {
+		//这里是获取对应的日志对象 并进行前置处理
 		this.loggingSystem = LoggingSystem
 				.get(event.getSpringApplication().getClassLoader());
 		this.loggingSystem.beforeInitialize();

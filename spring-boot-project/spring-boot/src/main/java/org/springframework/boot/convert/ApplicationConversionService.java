@@ -64,8 +64,10 @@ public class ApplicationConversionService extends FormattingConversionService {
 	 */
 	public static ConversionService getSharedInstance() {
 		ApplicationConversionService sharedInstance = ApplicationConversionService.sharedInstance;
+		//默认情况下 sharedInstance 是null
 		if (sharedInstance == null) {
 			synchronized (ApplicationConversionService.class) {
+				//这里初始化对象并赋值 典型的单例模式
 				sharedInstance = ApplicationConversionService.sharedInstance;
 				if (sharedInstance == null) {
 					sharedInstance = new ApplicationConversionService();
@@ -83,8 +85,10 @@ public class ApplicationConversionService extends FormattingConversionService {
 	 * ConversionService, e.g. being a {@link ConfigurableConversionService})
 	 * @throws ClassCastException if the given FormatterRegistry could not be cast to a
 	 * ConversionService
+	 * 针对对象进行配置
 	 */
 	public static void configure(FormatterRegistry registry) {
+		//该对象被 设置到 DefaultConversionService中  暂时理解为为一个转换服务 添加一个新的转换器
 		DefaultConversionService.addDefaultConverters(registry);
 		DefaultFormattingConversionService.addDefaultFormatters(registry);
 		addApplicationFormatters(registry);

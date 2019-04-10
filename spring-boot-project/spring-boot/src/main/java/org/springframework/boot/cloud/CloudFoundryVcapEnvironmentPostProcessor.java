@@ -110,9 +110,15 @@ public class CloudFoundryVcapEnvironmentPostProcessor
 		return this.order;
 	}
 
+	/**
+	 * 当监听到环境初始化时  触发
+	 * @param environment the environment to post-process
+	 * @param application the application to which the environment belongs
+	 */
 	@Override
 	public void postProcessEnvironment(ConfigurableEnvironment environment,
 			SpringApplication application) {
+		//默认一般也是false 吧
 		if (CloudPlatform.CLOUD_FOUNDRY.isActive(environment)) {
 			Properties properties = new Properties();
 			JsonParser jsonParser = JsonParserFactory.getJsonParser();

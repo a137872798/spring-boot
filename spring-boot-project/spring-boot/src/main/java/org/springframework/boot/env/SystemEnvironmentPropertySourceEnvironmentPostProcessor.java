@@ -48,17 +48,32 @@ public class SystemEnvironmentPropertySourceEnvironmentPostProcessor
 
 	private int order = DEFAULT_ORDER;
 
+	/**
+	 * 当环境初始化完成时的后置函数
+	 * @param environment the environment to post-process
+	 * @param application the application to which the environment belongs
+	 */
 	@Override
 	public void postProcessEnvironment(ConfigurableEnvironment environment,
 			SpringApplication application) {
+		//获取标准的环境名字
 		String sourceName = StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME;
+		//当环境被初始化时 会自动加载  environment 中的各个属性 以及 System.getProperties() 的属性
 		PropertySource<?> propertySource = environment.getPropertySources()
 				.get(sourceName);
+		//这里会返回 SystemEnvironmentPropertySource
 		if (propertySource != null) {
 			replacePropertySource(environment, sourceName, propertySource);
 		}
 	}
 
+	/**
+	 * 这里将 SystemEnvironmentPropertySource 替换成了 OriginAwareSystemEnvironmentPropertySource 后重新设置到了 environment中
+	 * OriginAwareSystemEnvironmentPropertySource 多实现了一个接口
+	 * @param environment
+	 * @param sourceName
+	 * @param propertySource
+	 */
 	@SuppressWarnings("unchecked")
 	private void replacePropertySource(ConfigurableEnvironment environment,
 			String sourceName, PropertySource<?> propertySource) {
@@ -91,6 +106,7 @@ public class SystemEnvironmentPropertySourceEnvironmentPostProcessor
 
 		@Override
 		public Origin getOrigin(String key) {
+			//通过该key 找到该属性
 			String property = resolvePropertyName(key);
 			if (super.containsProperty(property)) {
 				return new SystemEnvironmentOrigin(property);

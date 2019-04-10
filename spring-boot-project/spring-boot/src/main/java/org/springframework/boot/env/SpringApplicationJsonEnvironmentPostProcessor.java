@@ -82,10 +82,16 @@ public class SpringApplicationJsonEnvironmentPostProcessor
 		this.order = order;
 	}
 
+	/**
+	 * 该方法会在环境初始化时被触发
+	 * @param environment the environment to post-process
+	 * @param application the application to which the environment belongs
+	 */
 	@Override
 	public void postProcessEnvironment(ConfigurableEnvironment environment,
 			SpringApplication application) {
 		MutablePropertySources propertySources = environment.getPropertySources();
+		//1.通过 map 方法 将 propertySource 变成 JsonPropertyValue 后 通过filter 过滤 之后只处理第一个  默认情况下是没有的
 		propertySources.stream().map(JsonPropertyValue::get).filter(Objects::nonNull)
 				.findFirst().ifPresent((v) -> processJson(environment, v));
 	}
@@ -198,6 +204,11 @@ public class SpringApplicationJsonEnvironmentPostProcessor
 			return PropertySourceOrigin.get(this.propertySource, this.propertyName);
 		}
 
+		/**
+		 * 这里尝试从  propertySource中 寻找  默认情况下 的 几个propertySource 是没有设置这个属性的
+		 * @param propertySource
+		 * @return
+		 */
 		public static JsonPropertyValue get(PropertySource<?> propertySource) {
 			for (String candidate : CANDIDATES) {
 				Object value = propertySource.getProperty(candidate);

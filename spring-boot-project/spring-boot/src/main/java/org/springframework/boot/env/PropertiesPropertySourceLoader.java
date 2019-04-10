@@ -56,8 +56,10 @@ public class PropertiesPropertySourceLoader implements PropertySourceLoader {
 	private Map<String, ?> loadProperties(Resource resource) throws IOException {
 		String filename = resource.getFilename();
 		if (filename != null && filename.endsWith(XML_FILE_EXTENSION)) {
+			//因为 property 能同时加载property 文件 和 xml 文件 并生成map 对象
 			return (Map) PropertiesLoaderUtils.loadProperties(resource);
 		}
+		//这里就看成简单的读取 property
 		return new OriginTrackedPropertiesLoader(resource).load();
 	}
 
