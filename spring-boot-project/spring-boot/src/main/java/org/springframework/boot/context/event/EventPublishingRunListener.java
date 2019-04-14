@@ -99,6 +99,7 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 			if (listener instanceof ApplicationContextAware) {
 				((ApplicationContextAware) listener).setApplicationContext(context);
 			}
+			//这里把监听器移动到了上下文对象中
 			context.addApplicationListener(listener);
 		}
 		this.initialMulticaster.multicastEvent(
@@ -107,6 +108,7 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 
 	@Override
 	public void started(ConfigurableApplicationContext context) {
+		//将监听器被移动到 context 之后 就使用 context 来发布事件了  context 内部是维护了广播对象的
 		context.publishEvent(
 				new ApplicationStartedEvent(this.application, this.args, context));
 	}

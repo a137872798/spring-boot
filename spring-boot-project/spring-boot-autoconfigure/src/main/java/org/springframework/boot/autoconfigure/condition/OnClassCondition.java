@@ -39,6 +39,7 @@ import org.springframework.util.StringUtils;
  * @author Phillip Webb
  * @see ConditionalOnClass
  * @see ConditionalOnMissingClass
+ * 用于过滤 自动配置的类
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 class OnClassCondition extends FilteringSpringBootCondition {
@@ -49,9 +50,12 @@ class OnClassCondition extends FilteringSpringBootCondition {
 		// Split the work and perform half in a background thread. Using a single
 		// additional thread seems to offer the best performance. More threads make
 		// things worse
+		// 将待自动配置的数组 一分为二 进行处理
 		int split = autoConfigurationClasses.length / 2;
+		//内部会创建一个线程 执行任务
 		OutcomesResolver firstHalfResolver = createOutcomesResolver(
 				autoConfigurationClasses, 0, split, autoConfigurationMetadata);
+		//后半部分正常执行
 		OutcomesResolver secondHalfResolver = new StandardOutcomesResolver(
 				autoConfigurationClasses, split, autoConfigurationClasses.length,
 				autoConfigurationMetadata, getBeanClassLoader());
@@ -200,6 +204,7 @@ class OnClassCondition extends FilteringSpringBootCondition {
 			for (int i = start; i < end; i++) {
 				String autoConfigurationClass = autoConfigurationClasses[i];
 				if (autoConfigurationClass != null) {
+					//从 自动配置的类中 获取 注解属性
 					String candidates = autoConfigurationMetadata
 							.get(autoConfigurationClass, "ConditionalOnClass");
 					if (candidates != null) {
@@ -210,6 +215,7 @@ class OnClassCondition extends FilteringSpringBootCondition {
 			return outcomes;
 		}
 
+		//判断是否符合条件
 		private ConditionOutcome getOutcome(String candidates) {
 			try {
 				if (!candidates.contains(",")) {
@@ -231,6 +237,7 @@ class OnClassCondition extends FilteringSpringBootCondition {
 		}
 
 		private ConditionOutcome getOutcome(String className, ClassLoader classLoader) {
+			//内部实现是看能否通过ClassLoader 加载该类
 			if (ClassNameFilter.MISSING.matches(className, classLoader)) {
 				return ConditionOutcome.noMatch(ConditionMessage
 						.forCondition(ConditionalOnClass.class)

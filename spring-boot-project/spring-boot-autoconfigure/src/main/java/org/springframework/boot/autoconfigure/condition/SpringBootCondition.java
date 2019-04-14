@@ -34,6 +34,7 @@ import org.springframework.util.StringUtils;
  *
  * @author Phillip Webb
  * @author Greg Turnquist
+ * spring boot 的 条件基类  配合 自动配置 可以起到对自动配置的限制作用
  */
 public abstract class SpringBootCondition implements Condition {
 
@@ -42,11 +43,15 @@ public abstract class SpringBootCondition implements Condition {
 	@Override
 	public final boolean matches(ConditionContext context,
 			AnnotatedTypeMetadata metadata) {
+		//判断是 类级别注解 or 方法级别注解  然后获取类名/方法名
 		String classOrMethodName = getClassOrMethodName(metadata);
 		try {
+			//判断条件是否匹配  由子类实现
 			ConditionOutcome outcome = getMatchOutcome(context, metadata);
+			//打印结果日志
 			logOutcome(classOrMethodName, outcome);
 			recordEvaluation(context, classOrMethodName, outcome);
+			//返回结果是否匹配
 			return outcome.isMatch();
 		}
 		catch (NoClassDefFoundError ex) {

@@ -164,6 +164,7 @@ public class ConfigFileApplicationListener
 			onApplicationEnvironmentPreparedEvent(
 					(ApplicationEnvironmentPreparedEvent) event);
 		}
+		//当spring 容器初始化完毕时触发
 		if (event instanceof ApplicationPreparedEvent) {
 			onApplicationPreparedEvent(event);
 		}
@@ -219,12 +220,14 @@ public class ConfigFileApplicationListener
 			ResourceLoader resourceLoader) {
 		//给 environment 设置了一个 Random 作为 PropertySource
 		RandomValuePropertySource.addToEnvironment(environment);
+		//该方法做的核心事件就是去 加载 4个固定位置下的application.properties 然后设置到 environment中
 		new Loader(environment, resourceLoader).load();
 	}
 
 	/**
 	 * Add appropriate post-processors to post-configure the property-sources.
 	 * @param context the context to configure
+	 *                为 bean工厂增加一个后置处理器
 	 */
 	protected void addPostProcessors(ConfigurableApplicationContext context) {
 		context.addBeanFactoryPostProcessor(
@@ -288,6 +291,9 @@ public class ConfigFileApplicationListener
 			reorderSources(this.context.getEnvironment());
 		}
 
+		/**
+		 * 每次都会将 默认的 propertySource 设置到尾部
+		 */
 		private void reorderSources(ConfigurableEnvironment environment) {
 			PropertySource<?> defaultProperties = environment.getPropertySources()
 					.remove(DEFAULT_PROPERTIES);
@@ -351,6 +357,7 @@ public class ConfigFileApplicationListener
 				Profile profile = this.profiles.poll();
 				//非默认属性需要设置到 profile中 但是一般情况下没有
 				if (profile != null && !profile.isDefaultProfile()) {
+					//将加载到的 profile 作为 激活的 信息
 					addProfileToEnvironment(profile.getName());
 				}
 				//加载 profile 信息
@@ -359,9 +366,12 @@ public class ConfigFileApplicationListener
 				//代表该 profile 已经处理完毕
 				this.processedProfiles.add(profile);
 			}
+			//只有被 正确加载到processedProfile 的 才会生效
 			resetEnvironmentProfiles(this.processedProfiles);
+			//使用消极模式再加载一次
 			load(null, this::getNegativeProfileFilter,
 					addToLoaded(MutablePropertySources::addFirst, true));
+			//最后将 PropertySource 重新加载出来
 			addLoadedPropertySources();
 		}
 
@@ -384,7 +394,7 @@ public class ConfigFileApplicationListener
 			//因为 activatedViaProperty 为空 这里不做任何处理
 			addActiveProfiles(activatedViaProperty);
 			if (this.profiles.size() == 1) { // only has null profile
-				//在 environment 初始化时 就会添加一个 default 作为 profile 所以一定会进入下面
+				//如果长度为1 代表是null 那么就会进入下面 获取default 属性
 				for (String defaultProfileName : this.environment.getDefaultProfiles()) {
 					Profile defaultProfile = new Profile(defaultProfileName, true);
 					this.profiles.add(defaultProfile);
@@ -532,7 +542,7 @@ public class ConfigFileApplicationListener
 		}
 
 		/**
-		 * 通过文件拓展名加载
+		 * 通过文件拓展名加载  核心就是加载了 properties 文件中的属性 具体做了什么先不看
 		 * @param loader
 		 * @param prefix
 		 * @param fileExtension
@@ -604,11 +614,13 @@ public class ConfigFileApplicationListener
 				List<Document> loaded = new ArrayList<>();
 				for (Document document : documents) {
 					if (filter.match(document)) {
+						//这里默认profile 是null 就对应 positive
 						addActiveProfiles(document.getActiveProfiles());
 						addIncludedProfiles(document.getIncludeProfiles());
 						loaded.add(document);
 					}
 				}
+				//最终将 加载的结果设置到了loaded 中
 				Collections.reverse(loaded);
 				if (!loaded.isEmpty()) {
 					loaded.forEach((document) -> consumer.accept(profile, document));
@@ -647,9 +659,9 @@ public class ConfigFileApplicationListener
 			DocumentsCacheKey cacheKey = new DocumentsCacheKey(loader, resource);
 			List<Document> documents = this.loadDocumentsCache.get(cacheKey);
 			if (documents == null) {
-				//缓存对象不存在的时候 加载属性
+				//缓存对象不存在的时候 加载属性  默认返回的是单对象列表 里面存放的是一个map 对应 properties 文件解析出来的属性
 				List<PropertySource<?>> loaded = loader.load(name, resource);
-				//将资源转化为document
+				//将资源转化为document  基本就是做了一下包装 profile
 				documents = asDocuments(loaded);
 				this.loadDocumentsCache.put(cacheKey, documents);
 			}
@@ -662,9 +674,13 @@ public class ConfigFileApplicationListener
 			}
 			return loaded.stream().map((propertySource) -> {
 				Binder binder = new Binder(
+						//将propertySource 变成一个可迭代对象
 						ConfigurationPropertySources.from(propertySource),
+						//根据 ${  } 解析属性
 						this.placeholdersResolver);
+				//构建一个document 对象
 				return new Document(propertySource,
+						//将bind 对象绑定到profiles 上
 						binder.bind("spring.profiles", STRING_ARRAY).orElse(null),
 						getProfiles(binder, ACTIVE_PROFILES_PROPERTY),
 						getProfiles(binder, INCLUDE_PROFILES_PROPERTY));
@@ -784,14 +800,20 @@ public class ConfigFileApplicationListener
 			this.environment.setActiveProfiles(names);
 		}
 
+		/**
+		 * 加载propertySource
+		 */
 		private void addLoadedPropertySources() {
+			//获取之前初始化环境有的各个propertySource
 			MutablePropertySources destination = this.environment.getPropertySources();
+			//loader 里面存放了 之前读取 application.properties 的各个属性
 			List<MutablePropertySources> loaded = new ArrayList<>(this.loaded.values());
 			Collections.reverse(loaded);
 			String lastAdded = null;
 			Set<String> added = new HashSet<>();
 			for (MutablePropertySources sources : loaded) {
 				for (PropertySource<?> source : sources) {
+					//这里将 propertySource 添加到 set 中 这里应该是为了去重  然后将 loader 中的propertySource 转移到了 environment 中
 					if (added.add(source.getName())) {
 						addLoadedPropertySource(destination, lastAdded, source);
 						lastAdded = source.getName();
@@ -803,6 +825,7 @@ public class ConfigFileApplicationListener
 		private void addLoadedPropertySource(MutablePropertySources destination,
 				String lastAdded, PropertySource<?> source) {
 			if (lastAdded == null) {
+				//首个propertySource 放在 default 前面
 				if (destination.contains(DEFAULT_PROPERTIES)) {
 					destination.addBefore(DEFAULT_PROPERTIES, source);
 				}
@@ -903,9 +926,13 @@ public class ConfigFileApplicationListener
 
 	/**
 	 * A single document loaded by a {@link PropertySourceLoader}.
+	 * 这里将 PropertySource 转换为了document 对象
 	 */
 	private static class Document {
 
+		/**
+		 * 对应的属性源对象
+		 */
 		private final PropertySource<?> propertySource;
 
 		private String[] profiles;

@@ -154,7 +154,9 @@ class BeanDefinitionLoader {
 					GroovyBeanDefinitionSource.class);
 			load(loader);
 		}
+		//一般该source 对象 就是 Main 对象  @SpringBootApplication 注解 等同于 Component 注解
 		if (isComponent(source)) {
+			//该对象是基于 注解加载 bean 的 类  这里将该bean 注册到工厂中
 			this.annotatedReader.register(source);
 			return 1;
 		}

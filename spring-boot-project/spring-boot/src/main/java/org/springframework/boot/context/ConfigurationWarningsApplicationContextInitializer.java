@@ -55,8 +55,13 @@ public class ConfigurationWarningsApplicationContextInitializer
 	private static final Log logger = LogFactory
 			.getLog(ConfigurationWarningsApplicationContextInitializer.class);
 
+	/**
+	 * 当环境构建完成 并设置好属性后 会调用该方法
+	 * @param context
+	 */
 	@Override
 	public void initialize(ConfigurableApplicationContext context) {
+		//为上下文对象 添加一个尾处理器
 		context.addBeanFactoryPostProcessor(
 				new ConfigurationWarningsPostProcessor(getChecks()));
 	}

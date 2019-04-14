@@ -52,6 +52,8 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
  * @see #scan(String...)
  * @see ServletWebServerApplicationContext
  * @see AnnotationConfigWebApplicationContext
+ *
+ * 当springboot 项目加载完 environment 后会创建该上下文对象
  */
 public class AnnotationConfigServletWebServerApplicationContext
 		extends ServletWebServerApplicationContext implements AnnotationConfigRegistry {
@@ -68,9 +70,12 @@ public class AnnotationConfigServletWebServerApplicationContext
 	 * Create a new {@link AnnotationConfigServletWebServerApplicationContext} that needs
 	 * to be populated through {@link #register} calls and then manually
 	 * {@linkplain #refresh refreshed}.
+	 * 该对象被初始化时 会构建一个 读取注解的reader 对象和一个scaner 对象
 	 */
 	public AnnotationConfigServletWebServerApplicationContext() {
+		//该对象对应到spring中扫描注解的对象
 		this.reader = new AnnotatedBeanDefinitionReader(this);
+		//该对象也是spring中的
 		this.scanner = new ClassPathBeanDefinitionScanner(this);
 	}
 

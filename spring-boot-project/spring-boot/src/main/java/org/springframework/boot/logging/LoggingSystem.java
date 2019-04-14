@@ -156,6 +156,7 @@ public abstract class LoggingSystem {
 			}
 			return get(classLoader, loggingSystem);
 		}
+		//这里包含默认的日志类  这里会返回第一个被成功实例化的日志类
 		return SYSTEMS.entrySet().stream()
 				.filter((entry) -> ClassUtils.isPresent(entry.getKey(), classLoader))
 				.map((entry) -> get(classLoader, entry.getValue())).findFirst()
@@ -166,6 +167,7 @@ public abstract class LoggingSystem {
 	private static LoggingSystem get(ClassLoader classLoader, String loggingSystemClass) {
 		try {
 			Class<?> systemClass = ClassUtils.forName(loggingSystemClass, classLoader);
+			//将实例化对象 转型成 LoggingSystem
 			return (LoggingSystem) systemClass.getConstructor(ClassLoader.class)
 					.newInstance(classLoader);
 		}

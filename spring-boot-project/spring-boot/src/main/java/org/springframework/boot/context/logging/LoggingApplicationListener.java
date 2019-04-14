@@ -86,6 +86,7 @@ import org.springframework.util.StringUtils;
  * @author Madhura Bhave
  * @since 2.0.0
  * @see LoggingSystem#get(ClassLoader)
+ * 		日志应用监听器
  */
 public class LoggingApplicationListener implements GenericApplicationListener {
 
@@ -172,11 +173,21 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 
 	private LogLevel springBootLogging = null;
 
+	/**
+	 * 这里判断给定的类型是否是支持的事件类型
+	 * @param resolvableType
+	 * @return
+	 */
 	@Override
 	public boolean supportsEventType(ResolvableType resolvableType) {
 		return isAssignableFrom(resolvableType.getRawClass(), EVENT_TYPES);
 	}
 
+	/**
+	 * 是否支持的事件源
+	 * @param sourceType
+	 * @return
+	 */
 	@Override
 	public boolean supportsSourceType(Class<?> sourceType) {
 		return isAssignableFrom(sourceType, SOURCE_TYPES);
@@ -227,6 +238,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 			this.loggingSystem = LoggingSystem
 					.get(event.getSpringApplication().getClassLoader());
 		}
+		//进行真正的日志框架初始化
 		initialize(event.getEnvironment(), event.getSpringApplication().getClassLoader());
 	}
 
@@ -255,6 +267,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 	 * {@link Environment} and the classpath.
 	 * @param environment the environment
 	 * @param classLoader the classloader
+	 *                    进行初始化
 	 */
 	protected void initialize(ConfigurableEnvironment environment,
 			ClassLoader classLoader) {

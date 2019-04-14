@@ -78,15 +78,24 @@ public class ServletContextInitializerBeans
 
 	private List<ServletContextInitializer> sortedList;
 
+	/**
+	 * 该对象能初始化 servlet 和 filter 对象  默认情况下没有传入自定义的 ServletContextInitializer 这样 应该会自动创建一个DispatcherServlet对象
+	 * @param beanFactory
+	 * @param initializerTypes
+	 */
 	@SafeVarargs
 	public ServletContextInitializerBeans(ListableBeanFactory beanFactory,
 			Class<? extends ServletContextInitializer>... initializerTypes) {
 		this.initializers = new LinkedMultiValueMap<>();
+		//如果 初始化对象不存在 默认会传入一个ServletContextInitializer
 		this.initializerTypes = (initializerTypes.length != 0)
 				? Arrays.asList(initializerTypes)
 				: Collections.singletonList(ServletContextInitializer.class);
+		//从bean工厂中加载ServletContextInitializer 的实现类   实际上还没有完成 适配servlet3.0 的类 只是将类添加到 initializers中
 		addServletContextInitializerBeans(beanFactory);
+		//这里好像是 把普通实现 Servlet 和 Filter 的类 加载进来
 		addAdaptableBeans(beanFactory);
+		//获取所有被装载的 web容器相关的类
 		List<ServletContextInitializer> sortedInitializers = this.initializers.values()
 				.stream()
 				.flatMap((value) -> value.stream()
@@ -100,15 +109,23 @@ public class ServletContextInitializerBeans
 		for (Class<? extends ServletContextInitializer> initializerType : this.initializerTypes) {
 			for (Entry<String, ? extends ServletContextInitializer> initializerBean : getOrderedBeansOfType(
 					beanFactory, initializerType)) {
+				//加载servlet实现类 并 设置到 web容器中  这里默认就会创建一个dispatcherServletRegistration 对象
 				addServletContextInitializerBean(initializerBean.getKey(),
 						initializerBean.getValue(), beanFactory);
 			}
 		}
 	}
 
+	/**
+	 * 将servlet初始类 注入到 servlet3.0规范的 类中
+	 * @param beanName
+	 * @param initializer
+	 * @param beanFactory
+	 */
 	private void addServletContextInitializerBean(String beanName,
 			ServletContextInitializer initializer, ListableBeanFactory beanFactory) {
 		if (initializer instanceof ServletRegistrationBean) {
+			//这里对应到 dispatcherServletRegistration 内部的 DispatcherServlet
 			Servlet source = ((ServletRegistrationBean<?>) initializer).getServlet();
 			addServletContextInitializerBean(Servlet.class, beanName, initializer,
 					beanFactory, source);
@@ -136,6 +153,14 @@ public class ServletContextInitializerBeans
 		}
 	}
 
+	/**
+	 * 添加到 servlet3.0 的 对象中
+	 * @param type
+	 * @param beanName
+	 * @param initializer
+	 * @param beanFactory
+	 * @param source
+	 */
 	private void addServletContextInitializerBean(Class<?> type, String beanName,
 			ServletContextInitializer initializer, ListableBeanFactory beanFactory,
 			Object source) {

@@ -73,6 +73,7 @@ class ConfigurationPropertiesBinder {
 				.isJsr303Present(applicationContext);
 	}
 
+
 	public void bind(Bindable<?> target) {
 		ConfigurationProperties annotation = target
 				.getAnnotation(ConfigurationProperties.class);
@@ -80,6 +81,7 @@ class ConfigurationPropertiesBinder {
 				() -> "Missing @ConfigurationProperties on " + target);
 		List<Validator> validators = getValidators(target);
 		BindHandler bindHandler = getBindHandler(annotation, validators);
+		//获取真正执行绑定的对象然后调用绑定方法
 		getBinder().bind(annotation.prefix(), target, bindHandler);
 	}
 

@@ -88,6 +88,8 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
  * @see AnnotationConfigServletWebServerApplicationContext
  * @see XmlServletWebServerApplicationContext
  * @see ServletWebServerFactory
+ *
+ * 该对象负责加载 适配 web 项目的 拦截器 和servlet  该类是 AnnotationConfigServletWebServletApplicaitonContext 的父类  正是该类 实现了  web项目与 spring 上下文对象的统一
  */
 public class ServletWebServerApplicationContext extends GenericWebApplicationContext
 		implements ConfigurableWebServerApplicationContext {
@@ -100,11 +102,18 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	 * is deemed to be the "main" servlet and is automatically given a mapping of "/" by
 	 * default. To change the default behavior you can use a
 	 * {@link ServletRegistrationBean} or a different bean name.
+	 * 这里 衔接到 Spring-mvc的 dispatcherServlet对象
 	 */
 	public static final String DISPATCHER_SERVLET_NAME = "dispatcherServlet";
 
+	/**
+	 * springweb 服务的抽象  对应到tomcat  jetty 之类的 web容器
+	 */
 	private volatile WebServer webServer;
 
+	/**
+	 * servlet 配置对象
+	 */
 	private ServletConfig servletConfig;
 
 	private String serverNamespace;
@@ -130,6 +139,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	 */
 	@Override
 	protected void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+		//WebApplicationContextServletContextAwareProcessor 的父类 ServletContextAwareProcessor  能够实现 ServletContextAware ，ServletConfigAware 所以 后面的接口就被忽略了
 		beanFactory.addBeanPostProcessor(
 				new WebApplicationContextServletContextAwareProcessor(this));
 		beanFactory.ignoreDependencyInterface(ServletContextAware.class);
@@ -142,6 +152,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 			super.refresh();
 		}
 		catch (RuntimeException ex) {
+			//当尝试启动上下文对象时 失败 会 关闭 web容器(这里的 启动上下文包含加载BeanDefinition 以及 初始化bean 对象)
 			stopAndReleaseWebServer();
 			throw ex;
 		}
@@ -149,8 +160,10 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 
 	@Override
 	protected void onRefresh() {
+		//这里对应到 正常的 初始化bean 对象的过程
 		super.onRefresh();
 		try {
+			//开始创建web 容器对象  这里内部就会执行创建 webServer 的逻辑
 			createWebServer();
 		}
 		catch (Throwable ex) {
@@ -161,6 +174,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	@Override
 	protected void finishRefresh() {
 		super.finishRefresh();
+		//之前的  onRefresh() 只是完成了 加载 Servlet 和 filter 的bean 还没有进行实例化
 		WebServer webServer = startWebServer();
 		if (webServer != null) {
 			publishEvent(new ServletWebServerInitializedEvent(webServer, this));
@@ -173,11 +187,17 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		stopAndReleaseWebServer();
 	}
 
+	/**
+	 * 创建web 容器对象
+	 */
 	private void createWebServer() {
 		WebServer webServer = this.webServer;
+		//一般是进入到 第一个分支 这里会返回null
 		ServletContext servletContext = getServletContext();
 		if (webServer == null && servletContext == null) {
+			//获取web容器工厂对象 看来这里还是由选择使用哪个 web容器的  默认情况 只存在 TomcatServletWebServerFactory 类
 			ServletWebServerFactory factory = getWebServerFactory();
+			//获取 web 容器  该容器 对象在执行 onStartup 方法时 会触发 setSelfInitializer() 方法  这里通过TomcatServletWebServerFactory 创建真正的 Web容器对象
 			this.webServer = factory.getWebServer(getSelfInitializer());
 		}
 		else if (servletContext != null) {
@@ -200,6 +220,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	 */
 	protected ServletWebServerFactory getWebServerFactory() {
 		// Use bean names so that we don't consider the hierarchy
+		// 这里 加载了所有 可使用的web 容器类  默认情况 只有TomcatServletWebServerFactory
 		String[] beanNames = getBeanFactory()
 				.getBeanNamesForType(ServletWebServerFactory.class);
 		if (beanNames.length == 0) {
@@ -226,11 +247,21 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		return this::selfInitialize;
 	}
 
+	/**
+	 * 这里 对 servlet 上下文对象 进行初始化 处理
+	 * @param servletContext
+	 * @throws ServletException
+	 */
 	private void selfInitialize(ServletContext servletContext) throws ServletException {
+		//这个上下文对象 就是当 springboot 启动web容器时 初始化 传入的context对象
+		//配置操作可以忽略 要注意的是 这里才进行setContext的动作
 		prepareWebApplicationContext(servletContext);
+		//为该上下文 设置 application 的范围
 		registerApplicationScope(servletContext);
+		//将bean 工厂和对应的上下文对象注册到环境中
 		WebApplicationContextUtils.registerEnvironmentBeans(getBeanFactory(),
 				servletContext);
+		//这里 委托到内部的 各个ServletContextInitializerBeans  依次 调用onStartup
 		for (ServletContextInitializer beans : getServletContextInitializerBeans()) {
 			beans.onStartup(servletContext);
 		}
@@ -256,6 +287,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	 * {@link ServletContextInitializer}, {@link Servlet}, {@link Filter} and certain
 	 * {@link EventListener} beans.
 	 * @return the servlet initializer beans
+	 * 获取 能初始化  servlet filter 的 bean  只是 完成了加载servlet 和 filter  并没有进行实例化
 	 */
 	protected Collection<ServletContextInitializer> getServletContextInitializerBeans() {
 		return new ServletContextInitializerBeans(getBeanFactory());
@@ -313,10 +345,14 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		return webServer;
 	}
 
+	/**
+	 * 停止web容器
+	 */
 	private void stopAndReleaseWebServer() {
 		WebServer webServer = this.webServer;
 		if (webServer != null) {
 			try {
+				//这里委托给 webServer 实现
 				webServer.stop();
 				this.webServer = null;
 			}

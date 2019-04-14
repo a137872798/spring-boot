@@ -296,6 +296,10 @@ public class TomcatWebServer implements WebServer {
 		return this.serviceConnectors;
 	}
 
+	/**
+	 * 默认的 spring mvc web容器是  tomcat
+	 * @throws WebServerException
+	 */
 	@Override
 	public void stop() throws WebServerException {
 		synchronized (this.monitor) {

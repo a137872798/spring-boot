@@ -52,6 +52,8 @@ import org.springframework.util.Assert;
  * @author Phillip Webb
  * @author Madhura Bhave
  * @since 2.0.0
+ *
+ * 将对象绑定在 ConfigurationPropertySource 上
  */
 public class Binder {
 
@@ -133,6 +135,7 @@ public class Binder {
 		this.sources = sources;
 		this.placeholdersResolver = (placeholdersResolver != null) ? placeholdersResolver
 				: PlaceholdersResolver.NONE;
+		//为null的情况使用共享的转化服务 该对象在 接收到初始化事件时 就创建了
 		this.conversionService = (conversionService != null) ? conversionService
 				: ApplicationConversionService.getSharedInstance();
 		this.propertyEditorInitializer = propertyEditorInitializer;

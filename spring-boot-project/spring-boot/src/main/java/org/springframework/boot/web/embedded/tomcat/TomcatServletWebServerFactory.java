@@ -155,8 +155,15 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 		super(contextPath, port);
 	}
 
+	/**
+	 * 创建基于 Tomcat 的 web容器
+	 * @param initializers {@link ServletContextInitializer}s that should be applied as
+	 * the server starts
+	 * @return
+	 */
 	@Override
 	public WebServer getWebServer(ServletContextInitializer... initializers) {
+		//实例化tomcat对象
 		Tomcat tomcat = new Tomcat();
 		File baseDir = (this.baseDirectory != null) ? this.baseDirectory
 				: createTempDir("tomcat");
@@ -170,6 +177,7 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 		for (Connector additionalConnector : this.additionalTomcatConnectors) {
 			tomcat.getService().addConnector(additionalConnector);
 		}
+		//这里 创建 web容器的时候传入的 initializers 对象在执行 onstart 时 会触发 加载 servlet 和 filter 的动作
 		prepareContext(tomcat.getHost(), initializers);
 		return getTomcatWebServer(tomcat);
 	}
@@ -183,6 +191,7 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 
 	protected void prepareContext(Host host, ServletContextInitializer[] initializers) {
 		File documentRoot = getValidDocumentRoot();
+		//获取内嵌tomcat 上下文
 		TomcatEmbeddedContext context = new TomcatEmbeddedContext();
 		if (documentRoot != null) {
 			context.setResources(new LoaderHidingResourceRoot(context));
@@ -327,6 +336,7 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 	 */
 	protected void configureContext(Context context,
 			ServletContextInitializer[] initializers) {
+		//这里 传入了 能够加载 servlet 和 filter 的 对象 并设置到TomcatStarter 对象中
 		TomcatStarter starter = new TomcatStarter(initializers);
 		if (context instanceof TomcatEmbeddedContext) {
 			TomcatEmbeddedContext embeddedContext = (TomcatEmbeddedContext) context;

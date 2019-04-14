@@ -45,6 +45,7 @@ import org.springframework.util.StringUtils;
  * @author Phillip Webb
  * @author Dave Syer
  * @author Oliver Gierke
+ * 自动配置 所在的 包名
  */
 public abstract class AutoConfigurationPackages {
 
@@ -88,16 +89,21 @@ public abstract class AutoConfigurationPackages {
 	 * configuration class or classes.
 	 * @param registry the bean definition registry
 	 * @param packageNames the package names to set
+	 *
 	 */
 	public static void register(BeanDefinitionRegistry registry, String... packageNames) {
+		//判断是否 已经存在 BasePackages 的 bean 对象  这里使用的 bean 的 名字是 AutoConfigurationPackages
 		if (registry.containsBeanDefinition(BEAN)) {
 			BeanDefinition beanDefinition = registry.getBeanDefinition(BEAN);
+			//获取构造函数参数
 			ConstructorArgumentValues constructorArguments = beanDefinition
 					.getConstructorArgumentValues();
+			//在参数中添加一个新的 包名 这样创建出来的bean 就会增加一个packageName
 			constructorArguments.addIndexedArgumentValue(0,
 					addBasePackages(constructorArguments, packageNames));
 		}
 		else {
+			//还不存在 的情况下新建一个 BasePackages bean 并添加到bean 工厂中
 			GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
 			beanDefinition.setBeanClass(BasePackages.class);
 			beanDefinition.getConstructorArgumentValues().addIndexedArgumentValue(0,
@@ -120,6 +126,7 @@ public abstract class AutoConfigurationPackages {
 	/**
 	 * {@link ImportBeanDefinitionRegistrar} to store the base package from the importing
 	 * configuration.
+	 * 注册类  该类 配合 @Import 注解 实现将携带 @AutoConfigurationPackage 注解的类所在的包名
 	 */
 	static class Registrar implements ImportBeanDefinitionRegistrar, DeterminableImports {
 
@@ -138,12 +145,14 @@ public abstract class AutoConfigurationPackages {
 
 	/**
 	 * Wrapper for a package import.
+	 * 从 传入的 metadata 中 抽取出 包名
 	 */
 	private static final class PackageImport {
 
 		private final String packageName;
 
 		PackageImport(AnnotationMetadata metadata) {
+			//通过截取类的 全限定名 获取包名
 			this.packageName = ClassUtils.getPackageName(metadata.getClassName());
 		}
 
@@ -173,6 +182,7 @@ public abstract class AutoConfigurationPackages {
 
 	/**
 	 * Holder for the base package (name may be null to indicate no scanning).
+	 * 该类 维护了 所有的 包名 通过get 方法可以获取
 	 */
 	static final class BasePackages {
 

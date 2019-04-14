@@ -28,6 +28,7 @@ import org.springframework.core.type.AnnotationMetadata;
  *
  * @author Dave Syer
  * @author Phillip Webb
+ * 另一个能进行自动配置的类
  */
 public class ConfigurationPropertiesBindingPostProcessorRegistrar
 		implements ImportBeanDefinitionRegistrar {
@@ -35,6 +36,7 @@ public class ConfigurationPropertiesBindingPostProcessorRegistrar
 	@Override
 	public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata,
 			BeanDefinitionRegistry registry) {
+		//首先确认 不存在ConfigurationPropertiesBindingPostProcessor
 		if (!registry.containsBeanDefinition(
 				ConfigurationPropertiesBindingPostProcessor.BEAN_NAME)) {
 			registerConfigurationPropertiesBindingPostProcessor(registry);
@@ -45,6 +47,7 @@ public class ConfigurationPropertiesBindingPostProcessorRegistrar
 	private void registerConfigurationPropertiesBindingPostProcessor(
 			BeanDefinitionRegistry registry) {
 		GenericBeanDefinition definition = new GenericBeanDefinition();
+		// 该类 不同于 ConfigurationPropertiesBeanRegistrar 只能注入ConfigurationPropertiesBindingPostProcessor
 		definition.setBeanClass(ConfigurationPropertiesBindingPostProcessor.class);
 		definition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
 		registry.registerBeanDefinition(
@@ -55,6 +58,7 @@ public class ConfigurationPropertiesBindingPostProcessorRegistrar
 	private void registerConfigurationBeanFactoryMetadata(
 			BeanDefinitionRegistry registry) {
 		GenericBeanDefinition definition = new GenericBeanDefinition();
+		//这里要 为bean工厂增加  配置工厂元数据
 		definition.setBeanClass(ConfigurationBeanFactoryMetadata.class);
 		definition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
 		registry.registerBeanDefinition(ConfigurationBeanFactoryMetadata.BEAN_NAME,

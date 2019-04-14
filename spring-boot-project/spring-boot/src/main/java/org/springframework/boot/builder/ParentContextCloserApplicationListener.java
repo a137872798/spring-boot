@@ -35,6 +35,7 @@ import org.springframework.util.ObjectUtils;
  *
  * @author Dave Syer
  * @author Eric Bottard
+ * 监听应用上下文关闭的事件
  */
 public class ParentContextCloserApplicationListener
 		implements ApplicationListener<ParentContextAvailableEvent>,

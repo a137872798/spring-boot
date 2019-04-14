@@ -35,6 +35,7 @@ import org.springframework.util.CollectionUtils;
  * {@link AutoConfigurationImportFilter}.
  *
  * @author Phillip Webb
+ * 过滤 自动配置的类
  */
 abstract class FilteringSpringBootCondition extends SpringBootCondition
 		implements AutoConfigurationImportFilter, BeanFactoryAware, BeanClassLoaderAware {
@@ -43,11 +44,18 @@ abstract class FilteringSpringBootCondition extends SpringBootCondition
 
 	private ClassLoader beanClassLoader;
 
+	/**
+	 * 判断是否由需要拦截的 自动配置类
+	 * @param autoConfigurationClasses
+	 * @param autoConfigurationMetadata
+	 * @return
+	 */
 	@Override
 	public boolean[] match(String[] autoConfigurationClasses,
 			AutoConfigurationMetadata autoConfigurationMetadata) {
 		ConditionEvaluationReport report = ConditionEvaluationReport
 				.find(this.beanFactory);
+		//查看匹配结果  也就是核心还是这一步完成的
 		ConditionOutcome[] outcomes = getOutcomes(autoConfigurationClasses,
 				autoConfigurationMetadata);
 		boolean[] match = new boolean[outcomes.length];

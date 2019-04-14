@@ -1,4 +1,4 @@
-== Concourse pipeline
+== oncourse pipeline
 
 The pipeline can be deployed using the following command:
 

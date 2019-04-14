@@ -46,6 +46,7 @@ import org.springframework.util.StringUtils;
  * @author Dave Syer
  * @author Christian Dupuis
  * @author Stephane Nicoll
+ * 能够进行自动配置 的 选择器对象
  */
 class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 
@@ -53,6 +54,11 @@ class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 			ConfigurationPropertiesBeanRegistrar.class.getName(),
 			ConfigurationPropertiesBindingPostProcessorRegistrar.class.getName() };
 
+	/**
+	 * 当该类被@Import 引入时 就会调用该方法
+	 * @param metadata
+	 * @return
+	 */
 	@Override
 	public String[] selectImports(AnnotationMetadata metadata) {
 		return IMPORTS;
@@ -64,6 +70,11 @@ class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 	public static class ConfigurationPropertiesBeanRegistrar
 			implements ImportBeanDefinitionRegistrar {
 
+		/**
+		 * 将@EnableConfigurationProperties  中引入的类转换成beanDefinition 并设置到bean工厂中
+		 * @param metadata
+		 * @param registry
+		 */
 		@Override
 		public void registerBeanDefinitions(AnnotationMetadata metadata,
 				BeanDefinitionRegistry registry) {
@@ -87,6 +98,7 @@ class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 
 		private void register(BeanDefinitionRegistry registry,
 				ConfigurableListableBeanFactory beanFactory, Class<?> type) {
+			//注册beanDefinition
 			String name = getName(type);
 			if (!containsBeanDefinition(beanFactory, name)) {
 				registerBeanDefinition(registry, name, type);
@@ -94,6 +106,7 @@ class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 		}
 
 		private String getName(Class<?> type) {
+			//判断是否有前缀 有前缀的话 为 bean 的name 增加前缀
 			ConfigurationProperties annotation = AnnotationUtils.findAnnotation(type,
 					ConfigurationProperties.class);
 			String prefix = (annotation != null) ? annotation.prefix() : "";
@@ -116,6 +129,7 @@ class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 
 		private void registerBeanDefinition(BeanDefinitionRegistry registry, String name,
 				Class<?> type) {
+			//必须确认带注入的类 含有@ConfigurationProperties 注解
 			assertHasAnnotation(type);
 			GenericBeanDefinition definition = new GenericBeanDefinition();
 			definition.setBeanClass(type);
